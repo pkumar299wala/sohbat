@@ -23,14 +23,42 @@ import { GyaanPatraStage, type GyaanPatraMedia } from '../components/room/GyaanP
 import { AashirvadOverlay, type FloatingReaction, type PetalItem } from '../components/room/AashirvadOverlay';
 import { RoomSideDrawer, type ChatMsg, type DrawerTab, type LivePeer, type PollItem } from '../components/room/RoomSideDrawer';
 
-// ✅ FIX 1: Hidden Audio - Shyaam-Pat / Gyaan-Patra me bhi Audio chalta rahega
+// ✅ FINAL FIX 1: Hidden Audio - Track badle to bhi pakad lega, Shyaam-Pat me bhi bajega!
 function HiddenAudio({ stream, muted }: { stream: MediaStream | null; muted: boolean }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const attach = () => {
+    const el = audioRef.current;
+    if (!el || !stream) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    el.volume = 1.0;
+    el.play().catch(() => {});
+  };
+
   useEffect(() => {
-    if (audioRef.current) audioRef.current.srcObject = stream;
+    attach();
+    const onTrack = () => setTimeout(attach, 100);
+    stream?.addEventListener('addtrack', onTrack);
+    stream?.addEventListener('removetrack', onTrack);
+    const timer = setInterval(attach, 1000);
+    return () => {
+      stream?.removeEventListener('addtrack', onTrack);
+      stream?.removeEventListener('removetrack', onTrack);
+      clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stream]);
+
   if (!stream) return null;
-  return <audio ref={audioRef} autoPlay playsInline muted={muted} style={{ display: 'none' }} />;
+  return (
+    <audio
+      ref={audioRef}
+      autoPlay
+      playsInline
+      muted={muted}
+      style={{ width: '1px', height: '1px', opacity: 0, position: 'absolute', pointerEvents: 'none' }}
+    />
+  );
 }
 
 function VideoTile({
@@ -51,8 +79,8 @@ function VideoTile({
       {stream && isVideoOn && !audioOnly ? (
         <video
           ref={videoRef} autoPlay playsInline
-          muted={true} // ✅ Video ka Audio Mute, Awaaz HiddenAudio se aayegi - Echo nahi hoga
-          className={`sohbat-video-cover relative z-10 ${aasanMode === 'blur' ? 'brightness-105 contrast-105' : ''}`}
+          muted={true} // ✅ Video ka Audio Mute, Awaaz sirf HiddenAudio se aayegi - Echo nahi hoga
+          className="sohbat-video-cover relative z-10"
         />
       ) : (
         <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-3 text-center">
@@ -168,7 +196,7 @@ export function RoomPage() {
     return () => unsub();
   }, [room, user, isVerified, customDisplayName]);
 
-  // ✅ GURU LIVE PRATIKSHA LISTENER - Firebase se turant dikhega
+  // ✅ GURU LIVE PRATIKSHA - Firebase se turant dikhega
   useEffect(() => {
     if (!room || !user || !isVerified) return;
     if (room.hostUid !== user.uid) return;
@@ -248,7 +276,6 @@ export function RoomPage() {
           switch (msg.type) {
             case 'room:init': {
               setPeers(msg.peers || []);
-              // FIX: WS wali waiting list Firebase wali ko nahi mitegi
               setStrokes(msg.strokes || []); setPolls(msg.polls || []);
               if (msg.roomState) { setActiveMode(msg.roomState.activeMode || 'video'); setIsLocked(Boolean(msg.roomState.isLocked)); setMuteAllActive(Boolean(msg.roomState.muteAllActive)); setBreakoutActive(Boolean(msg.roomState.breakoutActive)); }
               for (const p of (msg.peers || []) as LivePeer[]) { if (p.uid !== user.uid && user.uid < p.uid) await adapter.connectToPeer(p.uid, true); }
@@ -268,7 +295,7 @@ export function RoomPage() {
             case 'peer:updated': { const updated = msg.peer as LivePeer; setPeers((prev) => prev.map((p) => (p.uid === updated.uid ? updated : p))); break; }
             case 'peer:left': { const leftUid = String(msg.uid); setPeers((prev) => prev.filter((p) => p.uid !== leftUid)); adapter.disconnectPeer(leftUid); break; }
             case 'peer:removed': { navigate('/join', { replace: true }); break; }
-            case 'pratiksha:updated': { break; } // FIX: Firebase hi Source of Truth
+            case 'pratiksha:updated': { break; }
             case 'signal': { await adapter.handleSignal(msg.fromUid, msg.data); break; }
             case 'arz:message': { setMessages((prev) => { if (prev.some((m) => m.id === msg.message.id)) return prev; return [...prev, msg.message]; }); break; }
             case 'reaction:send': {
@@ -322,7 +349,7 @@ export function RoomPage() {
     sendWsEvent({ type: 'peer:state', isMuted, isVideoOn, handRaised, audioOnly: next });
   };
 
-  // ✅ FIX 2: Screen Share - Screen + Mic dono Chela tak jayega
+  // ✅ FINAL FIX 2: Screen Share - Screen + Mic dono Chela tak jayega
   const handleToggleScreenShare = async () => {
     if (activeMode === 'screenshare') {
       screenStream?.getTracks().forEach((t) => t.stop());
@@ -362,12 +389,18 @@ export function RoomPage() {
     else if (file.type.startsWith('image/')) setGyaanMedia({ kind: 'image', url, name: file.name });
     else if (file.type.startsWith('video/')) setGyaanMedia({ kind: 'video', url, name: file.name });
   };
+
+  // ✅ FINAL FIX 3: Shyaam-Pat khulte hi Audio ko dobara jaga do!
   const handleToggleWhiteboard = () => {
     const nextMode: ActiveMode = activeMode === 'whiteboard' ? 'video' : 'whiteboard';
     setActiveMode(nextMode);
     sendWsEvent({ type: 'host:control', action: 'mode-switch', value: nextMode });
     if (isGuru && room) updateDarbarLiveControls(room.roomId, { activeMode: nextMode }).catch(() => {});
+    setTimeout(() => {
+      document.querySelectorAll('audio').forEach((a) => a.play().catch(() => {}));
+    }, 300);
   };
+
   const handleAashirvadOrAasan = () => {
     if (isGuru) { triggerAashirvadPetals(); sendWsEvent({ type: 'aashirvad:shower' }); }
     else { setDrawerTab('aasan'); setDrawerOpen(true); }
@@ -472,8 +505,8 @@ export function RoomPage() {
     <div className={`sohbat-room-grid ${drawerOpen ? 'has-drawer' : ''}`}>
       <AashirvadOverlay petals={petals} reactions={reactions} />
 
-      {/* ✅ HIDDEN AUDIO - Sabka Audio yahan hamesha chalega */}
-      <div aria-hidden="true" style={{ display: 'none' }}>
+      {/* ✅ HIDDEN AUDIO - Sabka Audio yahan hamesha chalega, display:none NAHI! */}
+      <div aria-hidden="true" style={{ width: '1px', height: '1px', overflow: 'hidden', position: 'absolute' }}>
         {Object.entries(remoteStreams).map(([uid, stream]) => (
           <HiddenAudio key={uid} stream={stream} muted={false} />
         ))}
