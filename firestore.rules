@@ -1,0 +1,375 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (
+        request.auth.token.email_verified == true ||
+        request.auth.token.phone_number != null
+      );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidRoomCode(code) {
+      return code is string && code.size() >= 6 && code.size() <= 24 && code.matches('^SOHBAT-[A-Z0-9]{4,10}$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function darbarDoc(roomId) {
+      return get(/databases/$(database)/documents/darbars/$(roomId));
+    }
+
+    function isDarbarHost(roomId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/darbars/$(roomId)) &&
+        darbarDoc(roomId).data.hostUid == request.auth.uid;
+    }
+
+    function isAdmittedChela(roomId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/darbars/$(roomId)/pratiksha/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/darbars/$(roomId)/pratiksha/$(request.auth.uid)).data.status == 'admitted';
+    }
+
+    function isRoomParticipant(roomId) {
+      return isDarbarHost(roomId) || isAdmittedChela(roomId);
+    }
+
+    // 3. Entity Validation Blueprints
+    function isValidUserPublic(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'rolePreference', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'photoURL', 'rolePreference', 'updatedAt'])
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+        && data.rolePreference in ['guru', 'chela']
+        && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidUserPrivate(data, userId) {
+      return data.keys().hasAll(['uid', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'phoneNumber', 'createdAt', 'updatedAt'])
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && (!('email' in data) || (data.email is string && data.email.size() <= 160))
+        && (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 32))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidRoomCodeIndex(data, code) {
+      return data.keys().hasAll(['roomCode', 'roomId', 'hostUid', 'title', 'hasPassword', 'status', 'createdAt'])
+        && data.keys().hasOnly(['roomCode', 'roomId', 'hostUid', 'title', 'hasPassword', 'status', 'createdAt'])
+        && data.roomCode == code
+        && isValidRoomCode(data.roomCode)
+        && isValidId(data.roomId)
+        && isValidId(data.hostUid)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.hasPassword is bool
+        && data.status in ['scheduled', 'live', 'ended']
+        && data.createdAt is timestamp;
+    }
+
+    function isValidDarbarRoom(data, roomId) {
+      return data.keys().hasAll([
+          'roomId', 'roomCode', 'title', 'hostUid', 'hostName',
+          'hasPassword', 'status', 'isLocked', 'muteAllActive',
+          'activeMode', 'recordingActive', 'breakoutActive', 'recurrence',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'roomId', 'roomCode', 'title', 'hostUid', 'hostName',
+          'passwordHash', 'hasPassword', 'status', 'isLocked', 'muteAllActive',
+          'activeMode', 'recordingActive', 'breakoutActive', 'scheduledFor',
+          'recurrence', 'createdAt', 'updatedAt'
+        ])
+        && data.roomId == roomId
+        && isValidRoomCode(data.roomCode)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && isValidId(data.hostUid)
+        && data.hostName is string && data.hostName.size() >= 1 && data.hostName.size() <= 80
+        && (!('passwordHash' in data) || (data.passwordHash is string && data.passwordHash.size() <= 160))
+        && data.hasPassword is bool
+        && data.status in ['scheduled', 'live', 'ended']
+        && data.isLocked is bool
+        && data.muteAllActive is bool
+        && data.activeMode in ['video', 'screenshare', 'whiteboard']
+        && data.recordingActive is bool
+        && data.breakoutActive is bool
+        && (!('scheduledFor' in data) || (data.scheduledFor is string && data.scheduledFor.size() <= 64))
+        && data.recurrence in ['none', 'daily', 'weekly']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidPratiksha(data, roomId, userId) {
+      return data.keys().hasAll(['uid', 'roomId', 'hostUid', 'displayName', 'status', 'requestedAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'roomId', 'hostUid', 'displayName', 'status', 'requestedAt', 'updatedAt'])
+        && data.uid == userId
+        && data.roomId == roomId
+        && isValidId(data.hostUid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.status in ['waiting', 'admitted', 'rejected']
+        && data.requestedAt is timestamp
+        && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidParticipant(data, roomId, userId) {
+      return data.keys().hasAll([
+          'uid', 'roomId', 'hostUid', 'displayName', 'role',
+          'isMuted', 'isVideoOn', 'handRaised', 'audioOnly', 'joinedAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'roomId', 'hostUid', 'displayName', 'role',
+          'isMuted', 'isVideoOn', 'handRaised', 'audioOnly', 'breakoutRoomId', 'joinedAt', 'updatedAt'
+        ])
+        && data.uid == userId
+        && data.roomId == roomId
+        && isValidId(data.hostUid)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80
+        && data.role in ['guru', 'chela']
+        && data.isMuted is bool
+        && data.isVideoOn is bool
+        && data.handRaised is bool
+        && data.audioOnly is bool
+        && (!('breakoutRoomId' in data) || (data.breakoutRoomId is string && data.breakoutRoomId.size() <= 64))
+        && data.joinedAt is timestamp
+        && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+
+    function isValidArzMessage(data, roomId, messageId) {
+      return data.keys().hasAll(['id', 'roomId', 'hostUid', 'senderUid', 'senderName', 'senderRole', 'text', 'createdAt'])
+        && data.keys().hasOnly(['id', 'roomId', 'hostUid', 'senderUid', 'senderName', 'senderRole', 'text', 'createdAt'])
+        && data.id == messageId
+        && data.roomId == roomId
+        && isValidId(data.hostUid)
+        && data.senderUid == request.auth.uid
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 80
+        && data.senderRole in ['guru', 'chela']
+        && data.text is string && data.text.size() >= 1 && data.text.size() <= 1000
+        && data.createdAt is timestamp && data.createdAt == request.time;
+    }
+
+    function isValidSmritiRecording(data, recordingId) {
+      return data.keys().hasAll(['id', 'roomId', 'roomCode', 'title', 'hostUid', 'storagePath', 'durationSec', 'createdAt'])
+        && data.keys().hasOnly(['id', 'roomId', 'roomCode', 'title', 'hostUid', 'storagePath', 'durationSec', 'createdAt'])
+        && data.id == recordingId
+        && isValidId(data.roomId)
+        && isValidRoomCode(data.roomCode)
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 120
+        && data.hostUid == request.auth.uid
+        && data.storagePath is string && data.storagePath.size() >= 1 && data.storagePath.size() <= 300
+        && data.durationSec is number && data.durationSec >= 0
+        && data.createdAt is timestamp && data.createdAt == request.time;
+    }
+
+    // 4. Collection Rules
+
+    // Public User Profiles (No PII)
+    match /users_public/{userId} {
+      allow get: if isValidId(userId) && isSignedIn();
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && isOwner(userId)
+        && isValidUserPublic(incoming(), userId);
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && isOwner(userId)
+        && isValidUserPublic(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'rolePreference', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Private User PII (Email & Phone strictly isolated to owner)
+    match /users_private/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isVerifiedUser()
+        && isOwner(userId)
+        && isValidUserPrivate(incoming(), userId)
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(userId)
+        && isVerifiedUser()
+        && isOwner(userId)
+        && isValidUserPrivate(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'phoneNumber', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // Exact Room Code Lookup (Prevents enumeration)
+    match /room_codes/{roomCode} {
+      allow get: if isValidRoomCode(roomCode) && isSignedIn();
+      allow list: if false;
+      allow create: if isValidRoomCode(roomCode)
+        && isVerifiedUser()
+        && isValidRoomCodeIndex(incoming(), roomCode)
+        && incoming().hostUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && existsAfter(/databases/$(database)/documents/darbars/$(incoming().roomId));
+      allow update: if isValidRoomCode(roomCode)
+        && isVerifiedUser()
+        && isValidRoomCodeIndex(incoming(), roomCode)
+        && existing().hostUid == request.auth.uid
+        && incoming().hostUid == existing().hostUid
+        && incoming().roomId == existing().roomId
+        && incoming().roomCode == existing().roomCode
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'title', 'hasPassword']);
+      allow delete: if isValidRoomCode(roomCode) && isSignedIn() && existing().hostUid == request.auth.uid;
+    }
+
+    // Darbar Rooms
+    match /darbars/{roomId} {
+      allow get: if isValidId(roomId) && isSignedIn();
+      allow list: if isSignedIn() && resource.data.hostUid == request.auth.uid;
+      allow create: if isValidId(roomId)
+        && isVerifiedUser()
+        && isValidDarbarRoom(incoming(), roomId)
+        && incoming().hostUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(roomId)
+        && isVerifiedUser()
+        && isValidDarbarRoom(incoming(), roomId)
+        && existing().hostUid == request.auth.uid
+        && existing().status != 'ended'
+        && incoming().hostUid == existing().hostUid
+        && incoming().roomId == existing().roomId
+        && incoming().roomCode == existing().roomCode
+        && incoming().createdAt == existing().createdAt
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'status', 'isLocked', 'muteAllActive', 'activeMode',
+            'recordingActive', 'breakoutActive', 'updatedAt'
+          ]) ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'scheduledFor', 'recurrence', 'updatedAt'
+          ])
+        );
+      allow delete: if isValidId(roomId) && isSignedIn() && existing().hostUid == request.auth.uid;
+
+      // Pratiksha Kaksh (Waiting Room)
+      match /pratiksha/{userId} {
+        allow get: if isValidId(roomId) && isValidId(userId)
+          && (isOwner(userId) || isDarbarHost(roomId));
+        allow list: if isSignedIn() && resource.data.hostUid == request.auth.uid;
+        allow create: if isValidId(roomId) && isValidId(userId)
+          && isVerifiedUser()
+          && isOwner(userId)
+          && isValidPratiksha(incoming(), roomId, userId)
+          && incoming().requestedAt == request.time
+          && exists(/databases/$(database)/documents/darbars/$(roomId))
+          && incoming().hostUid == darbarDoc(roomId).data.hostUid
+          && darbarDoc(roomId).data.status != 'ended'
+          && darbarDoc(roomId).data.isLocked == false
+          && incoming().status == 'waiting';
+        allow update: if isValidId(roomId) && isValidId(userId)
+          && isVerifiedUser()
+          && isValidPratiksha(incoming(), roomId, userId)
+          && existing().uid == incoming().uid
+          && existing().roomId == incoming().roomId
+          && existing().hostUid == incoming().hostUid
+          && existing().requestedAt == incoming().requestedAt
+          && isDarbarHost(roomId)
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if isValidId(roomId) && isValidId(userId)
+          && (isOwner(userId) || isDarbarHost(roomId));
+      }
+
+      // Darbar Participants
+      match /participants/{userId} {
+        allow get: if isValidId(roomId) && isValidId(userId) && isRoomParticipant(roomId);
+        allow list: if isSignedIn() && (resource.data.hostUid == request.auth.uid || resource.data.uid == request.auth.uid);
+        allow create: if isValidId(roomId) && isValidId(userId)
+          && isVerifiedUser()
+          && isOwner(userId)
+          && isValidParticipant(incoming(), roomId, userId)
+          && incoming().joinedAt == request.time
+          && exists(/databases/$(database)/documents/darbars/$(roomId))
+          && incoming().hostUid == darbarDoc(roomId).data.hostUid
+          && (
+            (isDarbarHost(roomId) && incoming().role == 'guru') ||
+            (isAdmittedChela(roomId) && incoming().role == 'chela' && darbarDoc(roomId).data.isLocked == false)
+          );
+        allow update: if isValidId(roomId) && isValidId(userId)
+          && isVerifiedUser()
+          && isValidParticipant(incoming(), roomId, userId)
+          && existing().uid == incoming().uid
+          && existing().roomId == incoming().roomId
+          && existing().hostUid == incoming().hostUid
+          && existing().role == incoming().role
+          && existing().joinedAt == incoming().joinedAt
+          && (
+            (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly([
+              'isMuted', 'isVideoOn', 'handRaised', 'audioOnly', 'updatedAt'
+            ])) ||
+            (isDarbarHost(roomId) && incoming().diff(existing()).affectedKeys().hasOnly([
+              'isMuted', 'handRaised', 'breakoutRoomId', 'updatedAt'
+            ]))
+          );
+        allow delete: if isValidId(roomId) && isValidId(userId)
+          && (isOwner(userId) || isDarbarHost(roomId));
+      }
+
+      // Arz (Ephemeral Chat inside Darbar)
+      match /chat/{messageId} {
+        allow get: if isValidId(roomId) && isValidId(messageId) && isRoomParticipant(roomId);
+        allow list: if isSignedIn() && (resource.data.hostUid == request.auth.uid || resource.data.senderUid == request.auth.uid);
+        allow create: if isValidId(roomId) && isValidId(messageId)
+          && isVerifiedUser()
+          && isValidArzMessage(incoming(), roomId, messageId)
+          && exists(/databases/$(database)/documents/darbars/$(roomId))
+          && incoming().hostUid == darbarDoc(roomId).data.hostUid
+          && isRoomParticipant(roomId)
+          && (
+            (incoming().senderRole == 'guru' && isDarbarHost(roomId)) ||
+            (incoming().senderRole == 'chela' && !isDarbarHost(roomId))
+          );
+        allow update: if false;
+        allow delete: if isValidId(roomId) && isValidId(messageId) && isDarbarHost(roomId);
+      }
+    }
+
+    // Smriti (Recordings metadata — strictly Host-only)
+    match /recordings/{recordingId} {
+      allow get: if isValidId(recordingId) && isSignedIn() && resource.data.hostUid == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.hostUid == request.auth.uid;
+      allow create: if isValidId(recordingId)
+        && isVerifiedUser()
+        && isValidSmritiRecording(incoming(), recordingId)
+        && exists(/databases/$(database)/documents/darbars/$(incoming().roomId))
+        && darbarDoc(incoming().roomId).data.hostUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isValidId(recordingId) && isSignedIn() && existing().hostUid == request.auth.uid;
+    }
+  }
+}

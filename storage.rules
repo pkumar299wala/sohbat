@@ -1,0 +1,28 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Smriti (Recordings): Only the Guru (Host) who owns the recording folder can upload and download
+    match /smriti/{hostUid}/{roomId}/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == hostUid;
+      allow write: if request.auth != null
+                   && request.auth.uid == hostUid
+                   && request.resource.size < 250 * 1024 * 1024
+                   && (request.resource.contentType.matches('video/.*') || request.resource.contentType.matches('audio/.*'));
+      allow delete: if request.auth != null && request.auth.uid == hostUid;
+    }
+
+    // Gyaan Patra (Shared PDF/Image assets inside active Darbar)
+    match /gyaan/{roomId}/{uploaderUid}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.uid == uploaderUid
+                   && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if request.auth != null && request.auth.uid == uploaderUid;
+    }
+  }
+}

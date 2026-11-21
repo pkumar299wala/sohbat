@@ -1,0 +1,449 @@
+{
+  "entities": {
+    "UserPublic": {
+      "title": "UserPublic",
+      "description": "Public profile information without PII for SOHBAT participants.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "photoURL": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "rolePreference": {
+          "type": "string",
+          "enum": ["guru", "chela"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "rolePreference", "updatedAt"]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Isolated PII profile containing email and phone number readable only by the owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "phoneNumber": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "createdAt", "updatedAt"]
+    },
+    "RoomCodeIndex": {
+      "title": "RoomCodeIndex",
+      "description": "Exact room code lookup mapping SOHBAT-XXXX to its Darbar roomId.",
+      "type": "object",
+      "properties": {
+        "roomCode": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^SOHBAT-[A-Z0-9]{4,10}$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "hasPassword": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["scheduled", "live", "ended"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["roomCode", "roomId", "hostUid", "title", "hasPassword", "status", "createdAt"]
+    },
+    "DarbarRoom": {
+      "title": "DarbarRoom",
+      "description": "SOHBAT Guru-Chela video meeting room configuration and live state.",
+      "type": "object",
+      "properties": {
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomCode": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^SOHBAT-[A-Z0-9]{4,10}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "passwordHash": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "hasPassword": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["scheduled", "live", "ended"]
+        },
+        "isLocked": {
+          "type": "boolean"
+        },
+        "muteAllActive": {
+          "type": "boolean"
+        },
+        "activeMode": {
+          "type": "string",
+          "enum": ["video", "screenshare", "whiteboard"]
+        },
+        "recordingActive": {
+          "type": "boolean"
+        },
+        "breakoutActive": {
+          "type": "boolean"
+        },
+        "scheduledFor": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "recurrence": {
+          "type": "string",
+          "enum": ["none", "daily", "weekly"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "roomId",
+        "roomCode",
+        "title",
+        "hostUid",
+        "hostName",
+        "hasPassword",
+        "status",
+        "isLocked",
+        "muteAllActive",
+        "activeMode",
+        "recordingActive",
+        "breakoutActive",
+        "recurrence",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PratikshaEntry": {
+      "title": "PratikshaEntry",
+      "description": "Waiting room request submitted by a Chela awaiting Guru admission.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "status": {
+          "type": "string",
+          "enum": ["waiting", "admitted", "rejected"]
+        },
+        "requestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "roomId", "hostUid", "displayName", "status", "requestedAt", "updatedAt"]
+    },
+    "DarbarParticipant": {
+      "title": "DarbarParticipant",
+      "description": "Active admitted participant inside a Darbar room.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "role": {
+          "type": "string",
+          "enum": ["guru", "chela"]
+        },
+        "isMuted": {
+          "type": "boolean"
+        },
+        "isVideoOn": {
+          "type": "boolean"
+        },
+        "handRaised": {
+          "type": "boolean"
+        },
+        "audioOnly": {
+          "type": "boolean"
+        },
+        "breakoutRoomId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "roomId",
+        "hostUid",
+        "displayName",
+        "role",
+        "isMuted",
+        "isVideoOn",
+        "handRaised",
+        "audioOnly",
+        "joinedAt",
+        "updatedAt"
+      ]
+    },
+    "ArzMessage": {
+      "title": "ArzMessage",
+      "description": "Ephemeral Darbar text chat message auto-deleted when session ends.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "senderRole": {
+          "type": "string",
+          "enum": ["guru", "chela"]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "roomId", "hostUid", "senderUid", "senderName", "senderRole", "text", "createdAt"]
+    },
+    "SmritiRecording": {
+      "title": "SmritiRecording",
+      "description": "Metadata for Darbar recording stored in Firebase Storage, accessible only to Host.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "roomCode": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 24,
+          "pattern": "^SOHBAT-[A-Z0-9]{4,10}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "hostUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "storagePath": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "durationSec": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "roomId", "roomCode", "title", "hostUid", "storagePath", "durationSec", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users_public/{userId}": {
+      "schema": { "$ref": "#/entities/UserPublic" },
+      "description": "Public display name and role preference without PII."
+    },
+    "/users_private/{userId}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Private PII (email, phone) strictly accessible only by owner."
+    },
+    "/room_codes/{roomCode}": {
+      "schema": { "$ref": "#/entities/RoomCodeIndex" },
+      "description": "Direct single-doc lookup for SOHBAT-XXXX codes."
+    },
+    "/darbars/{roomId}": {
+      "schema": { "$ref": "#/entities/DarbarRoom" },
+      "description": "Darbar meeting room documents."
+    },
+    "/darbars/{roomId}/pratiksha/{userId}": {
+      "schema": { "$ref": "#/entities/PratikshaEntry" },
+      "description": "Pratiksha Kaksh (waiting room) requests."
+    },
+    "/darbars/{roomId}/participants/{userId}": {
+      "schema": { "$ref": "#/entities/DarbarParticipant" },
+      "description": "Admitted Darbar participants."
+    },
+    "/darbars/{roomId}/chat/{messageId}": {
+      "schema": { "$ref": "#/entities/ArzMessage" },
+      "description": "Arz (chat) messages inside a Darbar room."
+    },
+    "/recordings/{recordingId}": {
+      "schema": { "$ref": "#/entities/SmritiRecording" },
+      "description": "Host-only Smriti recording metadata."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "SOHBAT",
+  "description": "Baatein, Dil Se — Guru aur Chela ke Milan ke saath Video Darbar, Pratiksha Kaksh, Shyaam-Pat aur Gyaan Patra.",
+  "requestFramePermissions": ["camera", "microphone", "display-capture"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

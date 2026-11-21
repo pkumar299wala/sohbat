@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+:root {
+  --sohbat-purple-950: #160926;
+  --sohbat-purple-900: #1D0E30;
+  --sohbat-purple-800: #2B1547;
+  --sohbat-purple-700: #3D1F63;
+  --sohbat-kesar-500: #E59819;
+  --sohbat-kesar-400: #F3B33D;
+  --sohbat-kesar-700: #B7720A;
+  --sohbat-cream-50: #FAF5EC;
+  --sohbat-cream-100: #F3EBDC;
+  --sohbat-cream-200: #E8DEC8;
+}
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: var(--sohbat-cream-50);
+    color: var(--sohbat-purple-900);
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    text-wrap: balance;
+  }
+
+  .font-mono-tabular {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* SOHBAT Room Strict CSS Grid Layout */
+.sohbat-room-grid {
+  display: grid;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background-color: var(--sohbat-purple-950);
+  color: var(--sohbat-cream-50);
+  grid-template-columns: 1fr;
+  grid-template-rows: 0.5cm 1fr calc(0.5cm + env(safe-area-inset-bottom, 0px));
+}
+
+.sohbat-room-grid.has-drawer {
+  grid-template-columns: 1fr;
+  grid-template-rows: 0.5cm 1fr calc(0.5cm + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .sohbat-room-grid {
+    grid-template-columns: 1cm 1fr 1cm;
+    grid-template-rows: 1fr;
+  }
+
+  .sohbat-room-grid.has-drawer {
+    grid-template-columns: 1cm 1fr 320px 1cm;
+    grid-template-rows: 1fr;
+  }
+}
+
+.sohbat-desktop-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, color 150ms ease;
+}
+
+.sohbat-mobile-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), background-color 150ms ease, color 150ms ease;
+}
+
+.sohbat-video-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Aashirvad Falling Petals Keyframe */
+@keyframes petalFall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg) scale(0.9);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(105vh) translateX(40px) rotate(320deg) scale(1.05);
+    opacity: 0;
+  }
+}
+
+.animate-petal-fall {
+  animation: petalFall var(--fall-duration, 4.5s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes reactionFloat {
+  0% {
+    transform: translateY(0) scale(0.75);
+    opacity: 0;
+  }
+  15% {
+    transform: translateY(-14px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-140px) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-reaction-float {
+  animation: reactionFloat 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-petal-fall,
+  .animate-reaction-float {
+    animation: none;
+    opacity: 0;
+  }
+}
