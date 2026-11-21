@@ -7,6 +7,12 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "production"
 VIDEO_PROVIDER = "cloudflare-webrtc"
 
+[assets]
+directory = "dist"
+binding = "ASSETS"
+run_worker_first = true
+not_found_handling = "single-page-application"
+
 # Durable Object for per-Darbar real-time room signaling, Pratiksha Kaksh, Shyaam-Pat & Arz
 [[durable_objects.bindings]]
 name = "DARBAR_ROOM"
@@ -22,7 +28,3 @@ new_sqlite_classes = ["DarbarRoomDO"]
 # - FIREBASE_PROJECT_ID
 # - LIVEKIT_API_KEY (optional, when switching VIDEO_PROVIDER = "livekit")
 # - LIVEKIT_API_SECRET (optional, when switching VIDEO_PROVIDER = "livekit")
-[assets]
-directory = "dist"
-binding = "ASSETS"
-not_found_handling = "single-page-application"
