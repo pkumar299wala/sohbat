@@ -209,6 +209,8 @@ export async function getDarbarById(roomId: string): Promise<DarbarRoomDoc | nul
   }
 }
 
+// ✅ FINAL FIX: Ab Chela sirf ek baar Waiting me jayega
+// Guru ne Admit/Reject kiya to dobara Waiting nahi hoga!
 export async function requestPratikshaEntry(
   roomId: string,
   hostUid: string,
@@ -219,8 +221,9 @@ export async function requestPratikshaEntry(
   try {
     const existing = await getDoc(doc(db, 'darbars', roomId, 'pratiksha', uid));
     if (existing.exists()) {
-      const data = existing.data() as PratikshaDoc;
-      if (data.status === 'admitted') return;
+      // Pehle se koi bhi status hai — waiting / admitted / rejected
+      // To dobara mat likho, nahi to Guru ka Admit/Reject mit jayega!
+      return;
     }
     await setDoc(doc(db, 'darbars', roomId, 'pratiksha', uid), {
       uid,
