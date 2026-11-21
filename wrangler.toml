@@ -23,6 +23,6 @@ new_sqlite_classes = ["DarbarRoomDO"]
 # - LIVEKIT_API_KEY (optional, when switching VIDEO_PROVIDER = "livekit")
 # - LIVEKIT_API_SECRET (optional, when switching VIDEO_PROVIDER = "livekit")
 [assets]
-directory = "./"
+directory = "dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
