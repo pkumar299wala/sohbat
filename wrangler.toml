@@ -1,5 +1,5 @@
-name = "sohbat-signaling-worker"
-main = "cloudflare/worker.ts"
+name = "sohbat"
+main = "worker.ts"
 compatibility_date = "2026-03-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -7,18 +7,10 @@ compatibility_flags = ["nodejs_compat"]
 ENVIRONMENT = "production"
 VIDEO_PROVIDER = "cloudflare-webrtc"
 
-# Durable Object for per-Darbar real-time room signaling, Pratiksha Kaksh, Shyaam-Pat & Arz
 [[durable_objects.bindings]]
 name = "DARBAR_ROOM"
 class_name = "DarbarRoomDO"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["DarbarRoomDO"]
-
-# Secrets to set via `wrangler secret put`:
-# - CLOUDFLARE_TURN_TOKEN_ID
-# - CLOUDFLARE_API_TOKEN
-# - FIREBASE_PROJECT_ID
-# - LIVEKIT_API_KEY (optional, when switching VIDEO_PROVIDER = "livekit")
-# - LIVEKIT_API_SECRET (optional, when switching VIDEO_PROVIDER = "livekit")
+new_sqlite_classes = ["DarbarRoomDO"]
